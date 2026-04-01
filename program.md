@@ -1,11 +1,3 @@
-# what I should tell the LLM
-
-The starting architecture and hyperparameters I have provided typically achieve an expected reward of ~0.8. A basic handcrafted policy that I implemented to test the environment's solvability reliably gets an expected reward of ~0.99. Your goal is to adjust the training regime, architecture, hyperparameters, and make any other (good faith) changes you like in order to close that gap.
-
-
-
-classes/attention_encoder.py
-
 # autoresearch
 
 This is an experiment to have the LLM do its own research.
@@ -26,7 +18,7 @@ Once you get confirmation, kick off the experimentation.
 
 ## Experimentation
 
-Each experiment runs on a single GPU. The training script runs for a **fixed time budget of 10 minutes** (wall clock training time, excluding startup/compilation). You launch it simply as: `python train.py`.
+Each experiment runs on a single GPU. The training script runs for a **fixed time budget** (wall clock training time, excluding startup/compilation). You launch it simply as: `python train.py`.
 
 **What you CAN do:**
 - Modify `train.py` — this is the only file you edit. Everything is fair game: model architecture, optimizer, hyperparameters, training loop, batch size, model size, etc.
@@ -36,13 +28,15 @@ Each experiment runs on a single GPU. The training script runs for a **fixed tim
 - Install new packages or add dependencies. You can only use what's already in `requirements.txt`.
 - Modify the test environment. The agent's performance on `SW_lead_target` is the ground truth metric.
 
-**The goal is simple: get the highest eval_score.** Since the time budget is fixed, you don't need to worry about training time — it's always 10 minutes. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
+**The goal is simple: get the highest eval_score.** Since the time budget is fixed, you don't need to worry about training time — it's always the number specified in `constants.py`. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
 
 **VRAM** is a soft constraint. Some increase is acceptable for meaningful eval_score gains, but it should not blow up dramatically. This likely won't be a problem at all.
 
 **Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.01 eval_score improvement that adds 20 lines of hacky code? Probably not worth it. A 0.01 eval_score improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.
 
 **The first run**: Your very first run should always be to establish the baseline, so you will run the training script as is.
+
+**Miscellaneous notes**: The starting architecture and hyperparameters I have provided typically achieve an expected reward of ~0.72 in the allotted time. A basic handcrafted policy that I implemented to test the environment's solvability reliably gets an expected reward of ~0.99. Your goal is to adjust the training regime, architecture, hyperparameters, and make any other (good faith) changes you like in order to close that gap.
 
 ## Output format
 
@@ -58,7 +52,7 @@ num_steps:        8
 num_params_M:     0.4
 ```
 
-Note that the script is configured to always stop after 10 minutes, so depending on the computing platform of this computer the numbers might look different. You can extract the key metric from the log file:
+Note that the script is configured to always stop after a fixed wall clock time, so depending on the computing platform of this computer the numbers might look different. You can extract the key metric from the log file:
 
 ```
 grep "^eval_score:" run.log
@@ -84,9 +78,9 @@ Example:
 
 ```
 commit	eval_score	memory_gb	status	description
-a1b2c3d	0.623500	1.10	keep	baseline
-b2c3d4e	0.652700	1.12	keep	increase LR to 3e-4
-c3d4e5f	0.671500	1.10    discard	switch to Tanh activation
+a1b2c3d	0.532300	1.10	keep	baseline
+b2c3d4e	0.566700	1.12	keep	increase LR to 3e-4
+c3d4e5f	0.551500	1.10    discard	switch to Tanh activation
 d4e5f6g	0.000000	0.0 crash	double model width (OOM)
 ```
 
@@ -108,7 +102,7 @@ LOOP FOREVER:
 
 The idea is that you are a completely autonomous researcher trying things out. If they work, keep. If they don't, discard. And you're advancing the branch so that you can iterate. If you feel like you're getting stuck in some way, you can rewind but you should probably do this very very sparingly (if ever).
 
-**Timeout**: Each experiment should take ~10 minutes total (+ a few seconds for startup and eval overhead). If a run exceeds 15 minutes, kill it and treat it as a failure (discard and revert).
+**Timeout**: Each experiment should take roughly the time allotted in constraints.py (+ a few seconds for startup and eval overhead). If a run exceeds the constraint time by 5 minutes (e.g. constraint time is 300s, run time is 600s), kill it and treat it as a failure (discard and revert).
 
 **Crashes**: If a run crashes (OOM, or a bug, or etc.), use your judgment: If it's something dumb and easy to fix (e.g. a typo, a missing import), fix it and re-run. If the idea itself is fundamentally broken, just skip it, log "crash" as the status in the tsv, and move on.
 

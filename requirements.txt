@@ -10,3 +10,4 @@ lz4
 aiohttp_cors 
 torch
 tqdm
+pygame

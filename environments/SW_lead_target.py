@@ -85,33 +85,34 @@ class SW_lead_target(MultiAgentEnv):
                 
     def new_target_position(self):
         target = self.playerShips[1]
-        position = np.random.uniform(-WRAP_BOUND,WRAP_BOUND, (2,))
-        r = np.random.uniform(0, 1)**.5 * MISSILE_VEL * MISSILE_LIFE
-        p_ang = np.random.uniform(0, 2*np.pi)
+        r = self.rng.uniform(0, 1) ** .5 * MISSILE_VEL * MISSILE_LIFE
+        p_ang = self.rng.uniform(0, 2 * np.pi)
         position = np.array([np.cos(p_ang), np.sin(p_ang)]) * r
-        # Set velocity (perpendicular to angle to star)
         g = GRAV_CONST
-        if (not self.elliptical):
-            v_magnitude = (g/r)**.5 # For a circular orbit (v^2 = GM/r; g=GM)
-        else: #   eccentricity = (r_a - r_p) / (r_a + r_p); r_a = r
-            r_p = np.random.uniform(low=max(PLAYER_SIZE*2+STAR_SIZE, r/2), high=r)
+        if not self.elliptical:
+            v_magnitude = (g / r) ** .5
+        else:
+            r_p = self.rng.uniform(low=max(PLAYER_SIZE * 2 + STAR_SIZE, r / 2), high=r)
             ecc = (r - r_p) / (r + r_p)
-            # velocity at apocentre is sqrt((1-e) * GM / ((1+e) * r_a))
-            v_magnitude = ((1-ecc) * g / ((1+ecc)*r))**.5
-        v_angle = np.arctan2(position[1],position[0]) + np.pi/2 * np.sign(np.random.rand()-0.5)
+            v_magnitude = ((1 - ecc) * g / ((1 + ecc) * r)) ** .5
+        v_angle = np.arctan2(position[1], position[0]) + np.pi / 2 * np.sign(self.rng.random() - 0.5)
         target.vel = np.array([np.cos(v_angle), np.sin(v_angle)]) * v_magnitude
         target.pos = position
     
     def reset(self, seed=None, options={}):
+        if seed is not None:
+            self.rng = np.random.default_rng(seed)
+        elif not hasattr(self, 'rng'):
+            self.rng = np.random.default_rng()
         self.playerShips = [
             Ship(np.array([1e-10, 0.]), 90.),
-            Dummy_Ship(np.array([0.,0.]),0.,PLAYER_SIZE*self.size_multiplier)
+            Dummy_Ship(np.array([0., 0.]), 0., PLAYER_SIZE * self.size_multiplier)
         ]
         self.playerShips[0].stored_missiles = 1
         self.new_target_position()
-        self.missiles = [] # x, y, vx, vy
+        self.missiles = []
         self.time = 0
-        self.terminated = False # for rendering purposes
+        self.terminated = False
         self.target_dots = []
         self.missile_dots = []
         return self.get_obs(), {}

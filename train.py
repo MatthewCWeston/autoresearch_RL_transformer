@@ -36,9 +36,9 @@ from classes.batched_critic_ppo import BatchedCriticPPOLearner
 import argparse
 
 parser  = argparse.ArgumentParser()
-parser.add_argument('--env-runners', type=int, default=8)
-parser.add_argument("--batch-size", type=int, default=32768)
-parser.add_argument("--minibatch-size", type=int, default=4096)
+parser.add_argument('--env-runners', type=int, default=60)
+parser.add_argument("--batch-size", type=int, default=65536)
+parser.add_argument("--minibatch-size", type=int, default=8192)
 parser.add_argument("--critic-batch-size", type=int, default=32768) # Just for avoiding OOM issues
 args = parser.parse_args()
 
@@ -374,11 +374,12 @@ config = (
         )
     )
     .evaluation(
-		evaluation_num_env_runners=1,
+		evaluation_num_env_runners=4,
 		evaluation_interval=0, # No evaluations while training
 		evaluation_duration=1000,
         evaluation_duration_unit="episodes",
 	)
+    .debugging(seed=42)
 )
 
 algo = config.build_algo()
@@ -389,7 +390,7 @@ step = 0
 while (True):
     step += 1
     results = algo.train()
-    print(f"TRAIN: {results[ENV_RUNNER_RESULTS][EPISODE_RETURN_MEAN]:.2f} time={time.time()-t_start_training}")
+    print(f"TRAIN: {results[ENV_RUNNER_RESULTS][EPISODE_RETURN_MEAN]:.2f} time={time.time()-t_start_training:.1f}")
     if time.time() - t_start_training >= TIME_BUDGET:
         print(f"Time budget reached at {step} iters.")
         break
@@ -398,7 +399,7 @@ t_end_training = time.time()
 total_training_time = t_end_training - t_start_training
 results = algo.evaluate()
 eval_score = results[ENV_RUNNER_RESULTS][EPISODE_RETURN_MEAN]
-print(f"EVALUATION: {eval_score} time={time.time()-t_end_training}")
+print(f"EVALUATION: {eval_score:.2f} time={time.time()-t_end_training:.1f}")
 
 # Final summary
 t_end = time.time()
