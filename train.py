@@ -344,7 +344,7 @@ config = (
     .training(
         lr=3e-4,
         gamma=0.999,
-        lambda_=0.95,
+        lambda_=0.98,
         vf_clip_param=40,
         entropy_coeff=0.01,
         use_kl_loss=False,
