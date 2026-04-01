@@ -36,7 +36,7 @@ Each experiment runs on a single GPU. The training script runs for a **fixed tim
 
 **The first run**: Your very first run should always be to establish the baseline, so you will run the training script as is.
 
-**Miscellaneous notes**: The starting architecture and hyperparameters I have provided typically achieve an expected reward of ~0.72 in the allotted time. A basic handcrafted policy that I implemented to test the environment's solvability reliably gets an expected reward of ~0.99. Your goal is to adjust the training regime, architecture, hyperparameters, and make any other (good faith) changes you like in order to close that gap.
+**Miscellaneous notes**: The starting architecture and hyperparameters I have provided typically achieve an expected reward capping out around ~0.8 when unbound by time constraints. A basic handcrafted policy that I implemented to test the environment's solvability reliably gets an expected reward of ~0.99. Your goal is to adjust the training regime, architecture, hyperparameters, and make any other (good faith) changes you like in order to close that gap.
 
 ## Output format
 
