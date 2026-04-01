@@ -1,3 +1,9 @@
+# what I should tell the LLM
+
+The starting architecture and hyperparameters I have provided typically achieve an expected reward of ~0.8. A basic handcrafted policy that I implemented to test the environment's solvability reliably gets an expected reward of ~0.99. Your goal is to adjust the training regime, architecture, hyperparameters, and make any other (good faith) changes you like in order to close that gap.
+
+Note that the environment you are operating on is a simplified test-case meant to be challenging in a similar way to a separate environment on which your final architecture will be deployed. The larger environment will, as an example, involve reasoning about variable-length lists of moving targets, and maneuvering to avoid a variable-length list of opposing projectiles. The base architecture I have provided can handle these things, and it should still be able to do so when the automatic research process is complete. Moreover, you should make improvements to the architecture and training process that you reasonably expect would generalize to the larger environment.
+
 # autoresearch
 
 This is an experiment to have the LLM do its own research.
