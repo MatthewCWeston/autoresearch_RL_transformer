@@ -1,11 +1,3 @@
-# what I should tell the LLM
-
-The starting architecture and hyperparameters I have provided typically achieve an expected reward of ~0.8. A basic handcrafted policy that I implemented to test the environment's solvability reliably gets an expected reward of ~0.99. Your goal is to adjust the training regime, architecture, hyperparameters, and make any other (good faith) changes you like in order to close that gap.
-
-
-
-classes/attention_encoder.py
-
 # autoresearch
 
 This is an experiment to have the LLM do its own research.
@@ -43,6 +35,8 @@ Each experiment runs on a single GPU. The training script runs for a **fixed tim
 **Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.01 eval_score improvement that adds 20 lines of hacky code? Probably not worth it. A 0.01 eval_score improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.
 
 **The first run**: Your very first run should always be to establish the baseline, so you will run the training script as is.
+
+**Other notes**: A handcrafted policy was able to achieve a score of ~0.99, which is the target.
 
 ## Output format
 
