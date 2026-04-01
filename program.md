@@ -21,7 +21,7 @@ Once you get confirmation, kick off the experimentation.
 Each experiment runs on a single GPU. The training script runs for a **fixed time budget** (wall clock training time, excluding startup/compilation). You launch it simply as: `python train.py`.
 
 **What you CAN do:**
-- Modify `train.py` — this is the only file you edit. Everything is fair game: model architecture, optimizer, hyperparameters, training loop, batch size, model size, etc.
+- Modify `train.py` — this is the only file you edit. Everything is fair game: model architecture, optimizer, hyperparameters, training loop, etc.
 
 **What you CANNOT do:**
 - Modify other files. They are read-only. They contain the fixed testing environment and time constraints.
@@ -30,15 +30,13 @@ Each experiment runs on a single GPU. The training script runs for a **fixed tim
 
 **The goal is simple: get the highest eval_score.** Since the time budget is fixed, you don't need to worry about training time — it's always the number specified in `constants.py`. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
 
-**VRAM** is a soft constraint. Some increase is acceptable for meaningful eval_score gains, but it should not blow up dramatically. This likely won't be a problem at all.
+**General procedure (IMPORTANT)**: Runs take sufficiently long that minor adjustments to hyperparameters, in isolation, are generally not productive. The initial hyperparameters are a reasonable baseline — hyperparameter changes should generally be made due to architecture changes, and experiments should come from a thought-out plan to improve the system as a whole, after reading the relevant materials. Put simply, DO NOT run experiments that consist of one-line changes to hyperparameters without extraordinarily good reasons for doing so.
 
 **Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.01 eval_score improvement that adds 20 lines of hacky code? Probably not worth it. A 0.01 eval_score improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.
 
 **The first run**: Your very first run should always be to establish the baseline, so you will run the training script as is.
 
-**General procedure**: Runs take sufficiently long that minor adjustments to hyperparameters, in isolation, are generally not productive. The initial hyperparameters are a reasonable baseline — hyperparameter changes should generally be made due to architecture changes, and experiments should come from a thought-out plan to improve the system as a whole, after reading the relevant materials. Put simply, DO NOT run experiments that consist of one-line changes to hyperparameters without extraordinarily good reasons for doing so.
-
-**Miscellaneous notes**: The starting architecture and hyperparameters I have provided typically achieve an expected reward capping out around ~0.8 when unbound by time constraints. A basic handcrafted policy that I implemented to test the environment's solvability reliably gets an expected reward of ~0.99. Your goal is to adjust the training regime, architecture, hyperparameters, and make any other (good faith) changes you like in order to close that gap.
+**Miscellaneous notes**: The starting architecture and hyperparameters I have provided typically achieve an expected reward capping out around ~0.8 when unbound by time constraints (the scores you see during initial testing are expected to be much lower due to early stopping). A basic handcrafted policy that I implemented to test the environment's solvability reliably gets an expected reward of ~0.99. Your goal is to adjust the training regime, architecture, hyperparameters, and make any other (good faith) changes you like in order to close that gap.
 
 ## Output format
 
