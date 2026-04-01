@@ -344,9 +344,9 @@ config = (
     .training(
         lr=1e-4,
         gamma=0.999,
-        lambda_=0.8,
+        lambda_=0.95,
         vf_clip_param=40,
-        entropy_coeff=0.0,
+        entropy_coeff=0.01,
         use_kl_loss=False,
         train_batch_size=args.batch_size,
         minibatch_size=args.minibatch_size,
@@ -365,7 +365,7 @@ config = (
                 "head_fcnet_activation": "relu",
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
-                "attn_layers": 1,
+                "attn_layers": 2,
                 "dropout": 0.1,
                 
                 "head_fcnet_activation": "relu",
