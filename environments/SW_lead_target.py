@@ -85,14 +85,15 @@ class SW_lead_target(MultiAgentEnv):
                 
     def new_target_position(self):
         target = self.playerShips[1]
-        r = self.rng.uniform(0, 1) ** .5 * MISSILE_VEL * MISSILE_LIFE
+        r_min = PLAYER_SIZE * 2 + STAR_SIZE
+        r = max(r_min, self.rng.uniform(0, 1) ** .5 * MISSILE_VEL * MISSILE_LIFE)
         p_ang = self.rng.uniform(0, 2 * np.pi)
         position = np.array([np.cos(p_ang), np.sin(p_ang)]) * r
         g = GRAV_CONST
         if not self.elliptical:
             v_magnitude = (g / r) ** .5
         else:
-            r_p = self.rng.uniform(low=max(PLAYER_SIZE * 2 + STAR_SIZE, r / 2), high=r)
+            r_p = self.rng.uniform(low=max(r_min, r / 2), high=r)
             ecc = (r - r_p) / (r + r_p)
             v_magnitude = ((1 - ecc) * g / ((1 + ecc) * r)) ** .5
         v_angle = np.arctan2(position[1], position[0]) + np.pi / 2 * np.sign(self.rng.random() - 0.5)
