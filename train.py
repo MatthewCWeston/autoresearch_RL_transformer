@@ -348,6 +348,7 @@ config = (
         vf_clip_param=40,
         entropy_coeff=0.01,
         use_kl_loss=False,
+        num_sgd_iter=20,
         train_batch_size=args.batch_size,
         minibatch_size=args.minibatch_size,
         learner_class=BatchedCriticPPOLearner,
