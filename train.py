@@ -342,7 +342,7 @@ config = (
         env_config={"speed": 5.0, "ep_length": 4096, "size_multiplier": 1.0},
     )
     .training(
-        lr=1e-4,
+        lr=3e-4,
         gamma=0.999,
         lambda_=0.95,
         vf_clip_param=40,
@@ -366,7 +366,7 @@ config = (
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
                 "attn_layers": 2,
-                "dropout": 0.1,
+                "dropout": 0.0,
                 
                 "head_fcnet_activation": "relu",
                 "override_activation_fn": True,
