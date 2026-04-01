@@ -21,3 +21,6 @@ dev/
 
 # Results file
 results.tsv
+
+# LLM's access token
+token.txt
