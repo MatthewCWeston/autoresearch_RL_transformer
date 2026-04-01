@@ -1,9 +1,8 @@
-# Miscellaneous code of relatively little pertinance to the target task. Can be ignored.
+# This class is not used at all in our testing configuration. There is no need to view or edit it.
 import gymnasium as gym
 from ray.rllib.utils.annotations import PublicAPI
 import numpy as np
 
-TIME_BUDGET = 300
 
 @PublicAPI
 class RepeatedCustom(gym.spaces.Box):
