@@ -107,6 +107,8 @@ class AttentionEncoder(TorchModel, Encoder):
                 else:
                     raise Exception("Unsupported observation subspace")
             self.embs = nn.ModuleDict(embs)
+            # Learned CLS token: lets the model selectively aggregate entity info
+            self.cls_token = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
         except Exception as e:
             print("Exception when building AttentionEncoder:")
             print(e)
@@ -146,17 +148,18 @@ class AttentionEncoder(TorchModel, Encoder):
             embedded = self.embs[s](v)
             embeddings.append(embedded)
             masks.append(mask)
-        # All entities have embeddings. Apply masked residual self-attention and then mean-pool.
+        # All entities have embeddings. Prepend CLS token, apply attention, use CLS output.
         x = torch.concatenate(embeddings, dim=1)  # batch_size, seq_len, unit_size
         mask = torch.concatenate(masks, dim=1)  # batch_size, seq_len
+        batch_size = x.shape[0]
+        cls = self.cls_token.expand(batch_size, -1, -1)
+        x = torch.cat([cls, x], dim=1)
+        cls_mask = torch.ones(batch_size, 1, device=x.device)
+        mask = torch.cat([cls_mask, mask], dim=1)
         for i in range(self.attn_layers):
             layer = self.mha[i]
             x = layer(x, src_key_padding_mask=(1-mask))
-        # Masked mean-pooling.
-        mask = mask.unsqueeze(dim=2)
-        x = x * mask  # Mask x to exclude nonexistent entries from mean pool op
-        x = x.mean(dim=1) * mask.shape[1] / mask.sum(dim=1)  # Adjust mean
-        return {ENCODER_OUT: x}
+        return {ENCODER_OUT: x[:, 0, :]}  # CLS token aggregates entity info selectively
 
 
 class AttentionEncoderConfig(ModelConfig):
@@ -342,11 +345,11 @@ config = (
         env_config=ENV_CONFIG,
     )
     .training(
-        lr=1e-4,
+        lr=3e-4,
         gamma=0.999,
-        lambda_=0.8,
+        lambda_=0.98,
         vf_clip_param=40,
-        entropy_coeff=0.0,
+        entropy_coeff=0.005,
         use_kl_loss=False,
         train_batch_size=args.batch_size,
         minibatch_size=args.minibatch_size,
@@ -365,8 +368,8 @@ config = (
                 "head_fcnet_activation": "relu",
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
-                "attn_layers": 1,
-                "dropout": 0.1,
+                "attn_layers": 2,
+                "dropout": 0.0,
                 
                 "head_fcnet_activation": "relu",
                 "override_activation_fn": True,
