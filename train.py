@@ -1,6 +1,6 @@
 """
 Autoresearch pretraining script. Single-GPU, single-file.
-Simplified from our target environment.
+A short training run on an environment we wish to solve. Note that the real training run, after hyperparameter optimization, will be much longer.
 Usage: python train.py --env-runners 60 --batch-size 65536 --minibatch-size 8192
 """
 import time
@@ -339,7 +339,7 @@ config = (
     )
     .environment(
         env="env",
-        env_config={"speed": 5.0, "ep_length": 4096, "size_multiplier": 1.0},
+        env_config=ENV_CONFIG,
     )
     .training(
         lr=1e-4,

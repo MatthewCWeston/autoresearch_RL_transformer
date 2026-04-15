@@ -10,7 +10,7 @@ To set up a new experiment, work with the user to:
 2. **Create the branch**: `git checkout -b autoresearch/<tag>` from current master.
 3. **Read the relevant in-scope files**: The repo is small. Read these files for full context:
    - `train.py` — The file you modify. Model architecture, training loop, and hyperparameters.
-   - `environments/SW_lead_target.py` — The implementation of your test environment. A substantially simpler version of a larger target environment.
+   - `environments/SW_1v1_env_singleplayer.py` — The implementation of your target environment.
 4. **Initialize results.tsv**: Create `results.tsv` with just the header row. The baseline will be recorded after the first run.
 5. **Confirm and go**: Confirm setup looks good.
 
@@ -28,15 +28,13 @@ Each experiment runs on a single GPU. The training script runs for a **fixed tim
 - Install new packages or add dependencies. You can only use what's already in `requirements.txt`.
 - Modify the test environment. The agent's performance on `SW_lead_target` is the ground truth metric.
 
-**The goal is simple: get the highest eval_score.** Since the time budget is fixed, you don't need to worry about training time — it's always the number specified in `constants.py`. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
+**The goal is simple: get the highest eval_score.** Since the time budget is fixed, you don't need to worry about training time — it's always the number specified in `constraints.py`. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
 
 **General procedure (IMPORTANT)**: Runs take sufficiently long that minor adjustments to hyperparameters, in isolation, are generally not productive. The initial hyperparameters are a reasonable baseline — hyperparameter changes should generally be made due to architecture changes, and experiments should come from a thought-out plan to improve the system as a whole, after reading the relevant materials. Put simply, DO NOT run experiments that consist of one-line changes to hyperparameters without extraordinarily good reasons for doing so.
 
 **Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.01 eval_score improvement that adds 20 lines of hacky code? Probably not worth it. A 0.01 eval_score improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.
 
 **The first run**: Your very first run should always be to establish the baseline, so you will run the training script as is.
-
-**Miscellaneous notes**: The starting architecture and hyperparameters I have provided typically achieve an expected reward capping out around ~0.8 when unbound by time constraints (the scores you see during initial testing are expected to be much lower due to early stopping). A basic handcrafted policy that I implemented to test the environment's solvability reliably gets an expected reward of ~0.99. Your goal is to adjust the training regime, architecture, hyperparameters, and make any other (good faith) changes you like in order to close that gap.
 
 ## Output format
 
