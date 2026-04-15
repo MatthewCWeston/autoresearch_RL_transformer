@@ -37,7 +37,7 @@ import argparse
 
 parser  = argparse.ArgumentParser()
 parser.add_argument('--env-runners', type=int, default=60)
-parser.add_argument("--batch-size", type=int, default=196608)
+parser.add_argument("--batch-size", type=int, default=131072)
 parser.add_argument("--minibatch-size", type=int, default=8192)
 parser.add_argument("--critic-batch-size", type=int, default=32768) # Just for avoiding OOM issues
 args = parser.parse_args()
@@ -368,6 +368,7 @@ config = (
         learner_class=BatchedCriticPPOLearner,
         learner_config_dict={
             'critic_batch_size': args.critic_batch_size, # Just to avoid OOM; not a hyperparameter
+            'vf_cold_start': 2, # Train critic only for first 2 steps to bootstrap value function
         },
     )
     .rl_module(
