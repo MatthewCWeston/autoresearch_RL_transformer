@@ -26,7 +26,7 @@ Each experiment runs on a single GPU. The training script runs for a **fixed tim
 **What you CANNOT do:**
 - Modify other files. They are read-only. They contain the fixed testing environment and time constraints.
 - Install new packages or add dependencies. You can only use what's already in `requirements.txt`.
-- Modify the test environment. The agent's performance on `SW_lead_target` is the ground truth metric.
+- Modify the test environment. The agent's performance on `SW_1v1_env_singleplayer` is the ground truth metric.
 
 **The goal is simple: get the highest eval_score.** Since the time budget is fixed, you don't need to worry about training time — it's always the number specified in `constraints.py`. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
 
