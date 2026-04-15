@@ -107,6 +107,12 @@ class AttentionEncoder(TorchModel, Encoder):
                 else:
                     raise Exception("Unsupported observation subspace")
             self.embs = nn.ModuleDict(embs)
+            # Entity type embeddings: help model quickly learn entity roles (self/opp/missiles)
+            obs_names = [n for n in self.observation_space.spaces.keys()
+                         if not (CRITIC_ONLY in n and not self.is_critic_encoder)]
+            self.entity_type_map = {n: i for i, n in enumerate(obs_names)}
+            self.type_embs = nn.Embedding(len(obs_names), self.emb_dim)
+            nn.init.normal_(self.type_embs.weight, std=0.02)
             # Two learned CLS tokens: nav (movement decisions) and target (aiming decisions)
             self.cls_nav = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
             self.cls_target = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
@@ -147,6 +153,9 @@ class AttentionEncoder(TorchModel, Encoder):
                     v.device
                 ) # Fixed elements are always there
             embedded = self.embs[s](v)
+            if s in self.entity_type_map:
+                type_idx = torch.tensor(self.entity_type_map[s], device=v.device)
+                embedded = embedded + self.type_embs(type_idx).view(1, 1, -1)
             embeddings.append(embedded)
             masks.append(mask)
         # All entities have embeddings. Prepend dual CLS tokens, apply attention, concat outputs.
