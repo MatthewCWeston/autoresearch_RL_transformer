@@ -6,12 +6,9 @@ from PIL import Image, ImageDraw
 import pygame
 
 from classes.repeated_space import RepeatedCustom
-from classes.attention_encoder import CRITIC_ONLY
 
 from environments.SpaceWar_constants import *
 from environments.SpaceWar_objects import Missile, Ship, ego_pt, wrap
-
-ENV_DYNAMICS = CRITIC_ONLY+"_env_dynamics"
       
 class Dummy_Ship(Ship):
     def update(self, missiles, speed, grav_multiplier, target_loc):
@@ -64,7 +61,7 @@ class Dummy_Ship(Ship):
             draw.line([p[0],p[1], p[0]+vel[0],p[1]+vel[1]], width=1, fill='cyan')
             draw.line([p[0],p[1], hdim,hdim], width=1, fill='green')
 
-class SW_1v1_env_singleplayer(MultiAgentEnv):
+class SW_1v1_env_singleplayer(gym.Env):
     def __init__(self, env_config={}):
         super().__init__()
         self.agents = self.possible_agents = [0]
@@ -86,7 +83,6 @@ class SW_1v1_env_singleplayer(MultiAgentEnv):
         self.target_ammo = self.true_target_ammo = env_config.get('target_ammo', 0.0)
         # Randomize the curriculum?
         self.probabilistic = env_config.get('probabilistic_difficulty', False)
-        self.inform_critic = env_config.get('inform_critic', False) # Share environment dynamics with the critic
         # Rendering
         self.metadata['render_modes'].append('rgb_array')
         self.render_mode = 'rgb_array'
@@ -101,10 +97,8 @@ class SW_1v1_env_singleplayer(MultiAgentEnv):
             "missiles_friendly": self.missile_space, # Friendly missiles
             "missiles_hostile": self.missile_space # Hostile missiles
         }
-        if (self.inform_critic):
-            obs_space[ENV_DYNAMICS] = Box(0,1,shape=(4,)) # gm, sm/10, ts, ta
-        self.observation_spaces = {i: Dict(obs_space) for i in range(1)}
-        self.action_spaces = {i: MultiDiscrete([2,3,2]) for i in range(1)}
+        self.observation_space = Dict(obs_space)
+        self.action_space = MultiDiscrete([2,3,2])
         
     def get_obs(self):
         ego = self.playerShips[0] if self.egocentric else None
@@ -114,9 +108,7 @@ class SW_1v1_env_singleplayer(MultiAgentEnv):
             "missiles_friendly": self.missile_space.encode_obs([m.get_obs(ego, self.augment_obs) for m in self.missiles]),
             "missiles_hostile":  self.missile_space.encode_obs([m.get_obs(ego, self.augment_obs) for m in self.opponent_missiles]),
         }
-        if (self.inform_critic):
-            obs[ENV_DYNAMICS] = np.array([self.grav_multiplier, self.size_multiplier / 10, self.target_speed, self.target_ammo])
-        return {0: obs}
+        return obs
         
     def get_keymap(self): # Set multidiscrete 
         return {0: {pygame.K_UP: (0,1,False), # Action, Value, hold_disallowed (qol)
@@ -169,7 +161,7 @@ class SW_1v1_env_singleplayer(MultiAgentEnv):
             target.stored_missiles = 0
     
     def reset(self, seed=None, options={}):
-         if seed is not None:
+        if seed is not None:
             self.rng = np.random.default_rng(seed)
         elif not hasattr(self, 'rng'):
             self.rng = np.random.default_rng()
@@ -189,15 +181,15 @@ class SW_1v1_env_singleplayer(MultiAgentEnv):
         self.terminated = False # for rendering purposes
         return self.get_obs(), {}
         
-    def step(self, actions):
-        self.rewards = {0:0}
+    def step(self, action):
+        self.rewards = 0
         self.time += 1 * self.speed
         # Thrust is acc times anguv
         ship = self.playerShips[0]
-        ship.update(actions[0], self.missiles, self.speed, grav_multiplier=self.grav_multiplier)
+        ship.update(action, self.missiles, self.speed, grav_multiplier=self.grav_multiplier)
         if (np.linalg.norm(ship.pos, 2) < PLAYER_SIZE + STAR_SIZE):
             self.terminated = True;
-            self.rewards[0] = -1
+            self.rewards = -1
         # Update the dummy ship
         target = self.playerShips[1]
         if ((self.target_speed != 0) or (target.stored_missiles != 0)):
@@ -215,12 +207,12 @@ class SW_1v1_env_singleplayer(MultiAgentEnv):
                 if (si != -1):
                     if (si == 0):
                         self.terminated = True
-                        self.rewards[0] = -1
+                        self.rewards = -1
                     else:
-                        self.rewards[0] = 1
+                        self.rewards = 1
                         self.new_target_position()
         truncated = (self.time >= self.maxTime)
-        return self.get_obs(), self.rewards, {"__all__": self.terminated}, {"__all__": truncated}, {}
+        return self.get_obs(), self.rewards, self.terminated, truncated, {}
         
     def render(self): # Display the environment state
         ego = self.playerShips[0] if self.render_egocentric else None

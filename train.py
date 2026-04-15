@@ -28,8 +28,8 @@ from ray.rllib.utils.metrics import (
 )
 from ray.tune.registry import register_env
 
-from constraints import TIME_BUDGET
-from environments.SW_lead_target import SW_lead_target # Our testing environment
+from constraints import TIME_BUDGET, ENV_CONFIG
+from environments.SW_1v1_env_singleplayer import SW_1v1_env_singleplayer # Our testing environment
 from classes.repeated_space import RepeatedCustom
 from classes.batched_critic_ppo import BatchedCriticPPOLearner
 
@@ -324,7 +324,7 @@ class AttentionPPOCatalog(PPOCatalog):
 #####
 t_start = time.time()
 
-target_env = SW_lead_target
+target_env = SW_1v1_env_singleplayer
 register_env("env", lambda cfg: target_env(cfg))
 
 # Configure PPO
@@ -376,7 +376,7 @@ config = (
     .evaluation(
 		evaluation_num_env_runners=4,
 		evaluation_interval=0, # No evaluations while training
-		evaluation_duration=1000,
+		evaluation_duration=500,
         evaluation_duration_unit="episodes",
 	)
     .debugging(seed=42)
