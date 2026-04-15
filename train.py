@@ -107,8 +107,9 @@ class AttentionEncoder(TorchModel, Encoder):
                 else:
                     raise Exception("Unsupported observation subspace")
             self.embs = nn.ModuleDict(embs)
-            # Learned CLS token: lets the model selectively aggregate entity info
-            self.cls_token = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
+            # Two learned CLS tokens: nav (movement decisions) and target (aiming decisions)
+            self.cls_nav = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
+            self.cls_target = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
         except Exception as e:
             print("Exception when building AttentionEncoder:")
             print(e)
@@ -148,18 +149,20 @@ class AttentionEncoder(TorchModel, Encoder):
             embedded = self.embs[s](v)
             embeddings.append(embedded)
             masks.append(mask)
-        # All entities have embeddings. Prepend CLS token, apply attention, use CLS output.
+        # All entities have embeddings. Prepend dual CLS tokens, apply attention, concat outputs.
         x = torch.concatenate(embeddings, dim=1)  # batch_size, seq_len, unit_size
         mask = torch.concatenate(masks, dim=1)  # batch_size, seq_len
         batch_size = x.shape[0]
-        cls = self.cls_token.expand(batch_size, -1, -1)
-        x = torch.cat([cls, x], dim=1)
-        cls_mask = torch.ones(batch_size, 1, device=x.device)
+        cls_nav = self.cls_nav.expand(batch_size, -1, -1)
+        cls_tgt = self.cls_target.expand(batch_size, -1, -1)
+        x = torch.cat([cls_nav, cls_tgt, x], dim=1)
+        cls_mask = torch.ones(batch_size, 2, device=x.device)
         mask = torch.cat([cls_mask, mask], dim=1)
         for i in range(self.attn_layers):
             layer = self.mha[i]
             x = layer(x, src_key_padding_mask=(1-mask))
-        return {ENCODER_OUT: x[:, 0, :]}  # CLS token aggregates entity info selectively
+        # Concatenate both CLS outputs: nav context + targeting context
+        return {ENCODER_OUT: torch.cat([x[:, 0, :], x[:, 1, :]], dim=-1)}
 
 
 class AttentionEncoderConfig(ModelConfig):
@@ -169,7 +172,7 @@ class AttentionEncoderConfig(ModelConfig):
         self.attn_ff_dim = kwargs["model_config_dict"]["attn_ff_dim"]
         self.attn_layers = kwargs["model_config_dict"]["attn_layers"]
         self.dropout = kwargs["model_config_dict"].get("dropout", 0.1)
-        self.output_dims = (self.emb_dim,)
+        self.output_dims = (2 * self.emb_dim,)
 
     def build(self, framework, is_critic=False):
         return AttentionEncoder(self, is_critic)
