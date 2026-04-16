@@ -62,8 +62,8 @@ class SimpleTransformerLayer(nn.Module): # A simple implementation of a transfor
             nn.Linear(h_dim, emb_dim),
             nn.Dropout(dropout),
         )
-    def forward(self, x, src_key_padding_mask, attn_mask=None):
-        x_attn, _ = self.mha(x, x, x, key_padding_mask=src_key_padding_mask, attn_mask=attn_mask, need_weights=False)
+    def forward(self, x, src_key_padding_mask):
+        x_attn, _ = self.mha(x, x, x, key_padding_mask=src_key_padding_mask, need_weights=False)
         x = self.norm_attn(x_attn + x)
         x_ff = self.residual(x)
         x = self.norm_ff(x_ff + x)
@@ -170,14 +170,9 @@ class AttentionEncoder(TorchModel, Encoder):
         x = torch.cat([cls_nav, cls_tgt, x], dim=1)
         cls_mask = torch.ones(batch_size, 2, device=x.device)
         mask = torch.cat([cls_mask, mask], dim=1)
-        # exp54: block CLS tokens from attending to each other → forces independent specialization
-        seq_len = x.shape[1]
-        cls_block = torch.zeros(seq_len, seq_len, device=x.device)
-        cls_block[0, 1] = float('-inf')  # cls_nav cannot attend to cls_tgt
-        cls_block[1, 0] = float('-inf')  # cls_tgt cannot attend to cls_nav
         for i in range(self.attn_layers):
             layer = self.mha[i]
-            x = layer(x, src_key_padding_mask=(1-mask), attn_mask=cls_block)
+            x = layer(x, src_key_padding_mask=(1-mask))
         # Concatenate both CLS outputs: nav context + targeting context
         return {ENCODER_OUT: torch.cat([x[:, 0, :], x[:, 1, :]], dim=-1)}
 
