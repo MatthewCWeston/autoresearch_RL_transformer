@@ -155,14 +155,14 @@ class AttentionEncoder(TorchModel, Encoder):
                     v.device
                 ) # Fixed elements are always there
             embedded = self.embs[s](v)
+            embedded = self.input_norm(embedded)  # Normalize projection before adding type emb
             if s in self.entity_type_map:
                 type_idx = torch.tensor(self.entity_type_map[s], device=v.device)
                 embedded = embedded + self.type_embs(type_idx).view(1, 1, -1)
             embeddings.append(embedded)
             masks.append(mask)
-        # All entities have embeddings. Normalize, prepend dual CLS tokens, apply attention.
+        # All entities have embeddings. Prepend dual CLS tokens, apply attention.
         x = torch.concatenate(embeddings, dim=1)  # batch_size, seq_len, unit_size
-        x = self.input_norm(x)  # Normalize entity embeddings before attention
         mask = torch.concatenate(masks, dim=1)  # batch_size, seq_len
         batch_size = x.shape[0]
         cls_nav = self.cls_nav.expand(batch_size, -1, -1)
@@ -360,7 +360,7 @@ config = (
         env_config=ENV_CONFIG,
     )
     .training(
-        lr=4e-4,
+        lr=3e-4,
         gamma=0.999,
         lambda_=0.98,
         vf_clip_param=40,
