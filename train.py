@@ -38,7 +38,7 @@ import argparse
 parser  = argparse.ArgumentParser()
 parser.add_argument('--env-runners', type=int, default=60)
 parser.add_argument("--batch-size", type=int, default=131072)
-parser.add_argument("--minibatch-size", type=int, default=4096)
+parser.add_argument("--minibatch-size", type=int, default=8192)
 parser.add_argument("--critic-batch-size", type=int, default=32768) # Just for avoiding OOM issues
 args = parser.parse_args()
 
@@ -170,8 +170,14 @@ class AttentionEncoder(TorchModel, Encoder):
         for i in range(self.attn_layers):
             layer = self.mha[i]
             x = layer(x, src_key_padding_mask=(1-mask))
-        # Concatenate both CLS outputs: nav context + targeting context
-        return {ENCODER_OUT: torch.cat([x[:, 0, :], x[:, 1, :]], dim=-1)}
+        # Mean pool entity tokens (skip CLS at positions 0,1)
+        entity_x = x[:, 2:, :]
+        entity_mask = mask[:, 2:].unsqueeze(-1)  # [B, seq, 1]
+        entity_sum = (entity_x * entity_mask).sum(dim=1)
+        entity_count = entity_mask.sum(dim=1).clamp(min=1)
+        entity_pool = entity_sum / entity_count  # [B, emb_dim]
+        # Concatenate CLS nav, CLS target, and mean-pooled entity representation
+        return {ENCODER_OUT: torch.cat([x[:, 0, :], x[:, 1, :], entity_pool], dim=-1)}
 
 
 class AttentionEncoderConfig(ModelConfig):
@@ -181,7 +187,7 @@ class AttentionEncoderConfig(ModelConfig):
         self.attn_ff_dim = kwargs["model_config_dict"]["attn_ff_dim"]
         self.attn_layers = kwargs["model_config_dict"]["attn_layers"]
         self.dropout = kwargs["model_config_dict"].get("dropout", 0.1)
-        self.output_dims = (2 * self.emb_dim,)
+        self.output_dims = (3 * self.emb_dim,)
 
     def build(self, framework, is_critic=False):
         return AttentionEncoder(self, is_critic)
