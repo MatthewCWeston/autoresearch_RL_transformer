@@ -360,7 +360,7 @@ config = (
         env_config=ENV_CONFIG,
     )
     .training(
-        lr=3e-4,
+        lr=4e-4,
         gamma=0.999,
         lambda_=0.98,
         vf_clip_param=40,
@@ -383,7 +383,7 @@ config = (
                 "head_fcnet_activation": "relu",
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
-                "attn_layers": 3,
+                "attn_layers": 2,
                 "dropout": 0.0,
                 
                 "head_fcnet_activation": "relu",
