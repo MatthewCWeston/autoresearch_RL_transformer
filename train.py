@@ -118,8 +118,6 @@ class AttentionEncoder(TorchModel, Encoder):
             self.cls_target = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
             # Input LayerNorm to normalize entity embeddings before attention
             self.input_norm = nn.LayerNorm(self.emb_dim)
-            # Output LayerNorm to normalize CLS outputs before policy head
-            self.output_norm = nn.LayerNorm(self.emb_dim)
         except Exception as e:
             print("Exception when building AttentionEncoder:")
             print(e)
@@ -175,8 +173,8 @@ class AttentionEncoder(TorchModel, Encoder):
         for i in range(self.attn_layers):
             layer = self.mha[i]
             x = layer(x, src_key_padding_mask=(1-mask))
-        # Normalize and concatenate CLS outputs: nav context + targeting context
-        return {ENCODER_OUT: torch.cat([self.output_norm(x[:, 0, :]), self.output_norm(x[:, 1, :])], dim=-1)}
+        # Concatenate both CLS outputs: nav context + targeting context
+        return {ENCODER_OUT: torch.cat([x[:, 0, :], x[:, 1, :]], dim=-1)}
 
 
 class AttentionEncoderConfig(ModelConfig):
@@ -382,13 +380,13 @@ config = (
                 "attention_emb_dim": 128,
                 "attn_ff_dim": 1024,
                 "head_fcnet_hiddens": tuple([256,256]),
-                "head_fcnet_activation": "relu",
+                "head_fcnet_activation": "tanh",
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
                 "attn_layers": 2,
                 "dropout": 0.0,
                 
-                "head_fcnet_activation": "relu",
+                "head_fcnet_activation": "tanh",
                 "override_activation_fn": True,
             },
         )
