@@ -113,9 +113,10 @@ class AttentionEncoder(TorchModel, Encoder):
             self.entity_type_map = {n: i for i, n in enumerate(obs_names)}
             self.type_embs = nn.Embedding(len(obs_names), self.emb_dim)
             nn.init.normal_(self.type_embs.weight, std=0.02)
-            # Two learned CLS tokens: nav (movement decisions) and target (aiming decisions)
+            # Three learned CLS tokens: nav (movement), target (aiming), missile (active missile state)
             self.cls_nav = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
             self.cls_target = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
+            self.cls_missile = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
         except Exception as e:
             print("Exception when building AttentionEncoder:")
             print(e)
@@ -158,20 +159,21 @@ class AttentionEncoder(TorchModel, Encoder):
                 embedded = embedded + self.type_embs(type_idx).view(1, 1, -1)
             embeddings.append(embedded)
             masks.append(mask)
-        # All entities have embeddings. Prepend dual CLS tokens, apply attention, concat outputs.
+        # All entities have embeddings. Prepend triple CLS tokens, apply attention, concat outputs.
         x = torch.concatenate(embeddings, dim=1)  # batch_size, seq_len, unit_size
         mask = torch.concatenate(masks, dim=1)  # batch_size, seq_len
         batch_size = x.shape[0]
         cls_nav = self.cls_nav.expand(batch_size, -1, -1)
         cls_tgt = self.cls_target.expand(batch_size, -1, -1)
-        x = torch.cat([cls_nav, cls_tgt, x], dim=1)
-        cls_mask = torch.ones(batch_size, 2, device=x.device)
+        cls_msl = self.cls_missile.expand(batch_size, -1, -1)
+        x = torch.cat([cls_nav, cls_tgt, cls_msl, x], dim=1)
+        cls_mask = torch.ones(batch_size, 3, device=x.device)
         mask = torch.cat([cls_mask, mask], dim=1)
         for i in range(self.attn_layers):
             layer = self.mha[i]
             x = layer(x, src_key_padding_mask=(1-mask))
-        # Concatenate both CLS outputs: nav context + targeting context
-        return {ENCODER_OUT: torch.cat([x[:, 0, :], x[:, 1, :]], dim=-1)}
+        # Concatenate all CLS outputs: nav + targeting + missile state
+        return {ENCODER_OUT: torch.cat([x[:, 0, :], x[:, 1, :], x[:, 2, :]], dim=-1)}
 
 
 class AttentionEncoderConfig(ModelConfig):
@@ -181,7 +183,7 @@ class AttentionEncoderConfig(ModelConfig):
         self.attn_ff_dim = kwargs["model_config_dict"]["attn_ff_dim"]
         self.attn_layers = kwargs["model_config_dict"]["attn_layers"]
         self.dropout = kwargs["model_config_dict"].get("dropout", 0.1)
-        self.output_dims = (2 * self.emb_dim,)
+        self.output_dims = (3 * self.emb_dim,)
 
     def build(self, framework, is_critic=False):
         return AttentionEncoder(self, is_critic)
@@ -375,7 +377,7 @@ config = (
             catalog_class=AttentionPPOCatalog,
             model_config={
                 "attention_emb_dim": 128,
-                "attn_ff_dim": 2048,
+                "attn_ff_dim": 1024,
                 "head_fcnet_hiddens": tuple([256,256]),
                 "head_fcnet_activation": "relu",
                 "vf_share_layers": False,
