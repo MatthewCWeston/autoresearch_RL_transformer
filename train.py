@@ -361,6 +361,7 @@ config = (
         gamma=0.999,
         lambda_=0.98,
         vf_clip_param=40,
+        vf_loss_coeff=2.0,
         entropy_coeff=0.005,
         use_kl_loss=False,
         train_batch_size=args.batch_size,
@@ -368,7 +369,6 @@ config = (
         learner_class=BatchedCriticPPOLearner,
         learner_config_dict={
             'critic_batch_size': args.critic_batch_size, # Just to avoid OOM; not a hyperparameter
-            'vf_cold_start': 2, # Train critic only for first 2 steps to bootstrap value function
         },
     )
     .rl_module(
