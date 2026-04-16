@@ -99,8 +99,6 @@ class AttentionEncoder(TorchModel, Encoder):
                     s = s.child_space  # embed layer applies to child space
                 if type(s) is Box:
                     embs[n] = nn.Linear(s.shape[0], self.emb_dim)
-                    nn.init.normal_(embs[n].weight, std=0.02)
-                    nn.init.zeros_(embs[n].bias)
                 elif type(s) is Discrete:
                     embs[n] = nn.Embedding(s.n, self.emb_dim)
                     # By default, nn.Embedding has a much wider weight distribution than Linear.
@@ -118,6 +116,8 @@ class AttentionEncoder(TorchModel, Encoder):
             # Two learned CLS tokens: nav (movement decisions) and target (aiming decisions)
             self.cls_nav = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
             self.cls_target = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
+            # Input LayerNorm to normalize entity embeddings before attention
+            self.input_norm = nn.LayerNorm(self.emb_dim)
         except Exception as e:
             print("Exception when building AttentionEncoder:")
             print(e)
@@ -160,8 +160,9 @@ class AttentionEncoder(TorchModel, Encoder):
                 embedded = embedded + self.type_embs(type_idx).view(1, 1, -1)
             embeddings.append(embedded)
             masks.append(mask)
-        # All entities have embeddings. Prepend dual CLS tokens, apply attention, concat outputs.
+        # All entities have embeddings. Normalize, prepend dual CLS tokens, apply attention.
         x = torch.concatenate(embeddings, dim=1)  # batch_size, seq_len, unit_size
+        x = self.input_norm(x)  # Normalize entity embeddings before attention
         mask = torch.concatenate(masks, dim=1)  # batch_size, seq_len
         batch_size = x.shape[0]
         cls_nav = self.cls_nav.expand(batch_size, -1, -1)
