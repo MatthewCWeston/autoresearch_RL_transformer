@@ -160,9 +160,8 @@ class AttentionEncoder(TorchModel, Encoder):
                 embedded = embedded + self.type_embs(type_idx).view(1, 1, -1)
             embeddings.append(embedded)
             masks.append(mask)
-        # All entities have embeddings. Normalize, prepend dual CLS tokens, apply attention.
+        # All entities have embeddings. Prepend dual CLS tokens, normalize full sequence, apply attention.
         x = torch.concatenate(embeddings, dim=1)  # batch_size, seq_len, unit_size
-        x = self.input_norm(x)  # Normalize entity embeddings before attention
         mask = torch.concatenate(masks, dim=1)  # batch_size, seq_len
         batch_size = x.shape[0]
         cls_nav = self.cls_nav.expand(batch_size, -1, -1)
@@ -170,6 +169,7 @@ class AttentionEncoder(TorchModel, Encoder):
         x = torch.cat([cls_nav, cls_tgt, x], dim=1)
         cls_mask = torch.ones(batch_size, 2, device=x.device)
         mask = torch.cat([cls_mask, mask], dim=1)
+        x = self.input_norm(x)  # Normalize full sequence (CLS + entities) for uniform scale
         for i in range(self.attn_layers):
             layer = self.mha[i]
             x = layer(x, src_key_padding_mask=(1-mask))
@@ -380,13 +380,13 @@ config = (
                 "attention_emb_dim": 128,
                 "attn_ff_dim": 1024,
                 "head_fcnet_hiddens": tuple([256,256]),
-                "head_fcnet_activation": "tanh",
+                "head_fcnet_activation": "relu",
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
                 "attn_layers": 2,
                 "dropout": 0.0,
                 
-                "head_fcnet_activation": "tanh",
+                "head_fcnet_activation": "relu",
                 "override_activation_fn": True,
             },
         )
