@@ -114,8 +114,9 @@ class AttentionEncoder(TorchModel, Encoder):
             self.type_embs = nn.Embedding(len(obs_names), self.emb_dim)
             nn.init.normal_(self.type_embs.weight, std=0.02)
             # Two learned CLS tokens: nav (movement decisions) and target (aiming decisions)
-            self.cls_nav = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
-            self.cls_target = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
+            # Init with std=0.2 to match unit-scale entity embeddings after input_norm
+            self.cls_nav = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.2)
+            self.cls_target = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.2)
             # Input LayerNorm to normalize entity embeddings before attention
             self.input_norm = nn.LayerNorm(self.emb_dim)
         except Exception as e:
@@ -155,14 +156,14 @@ class AttentionEncoder(TorchModel, Encoder):
                     v.device
                 ) # Fixed elements are always there
             embedded = self.embs[s](v)
-            embedded = self.input_norm(embedded)  # Normalize projection before adding type emb
             if s in self.entity_type_map:
                 type_idx = torch.tensor(self.entity_type_map[s], device=v.device)
                 embedded = embedded + self.type_embs(type_idx).view(1, 1, -1)
             embeddings.append(embedded)
             masks.append(mask)
-        # All entities have embeddings. Prepend dual CLS tokens, apply attention.
+        # All entities have embeddings. Normalize, prepend dual CLS tokens, apply attention.
         x = torch.concatenate(embeddings, dim=1)  # batch_size, seq_len, unit_size
+        x = self.input_norm(x)  # Normalize entity embeddings before attention
         mask = torch.concatenate(masks, dim=1)  # batch_size, seq_len
         batch_size = x.shape[0]
         cls_nav = self.cls_nav.expand(batch_size, -1, -1)
