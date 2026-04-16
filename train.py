@@ -112,11 +112,10 @@ class AttentionEncoder(TorchModel, Encoder):
                          if not (CRITIC_ONLY in n and not self.is_critic_encoder)]
             self.entity_type_map = {n: i for i, n in enumerate(obs_names)}
             self.type_embs = nn.Embedding(len(obs_names), self.emb_dim)
-            nn.init.normal_(self.type_embs.weight, std=0.02)
+            nn.init.normal_(self.type_embs.weight, std=0.1)
             # Two learned CLS tokens: nav (movement decisions) and target (aiming decisions)
-            # Init with std=0.2 to match unit-scale entity embeddings after input_norm
-            self.cls_nav = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.2)
-            self.cls_target = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.2)
+            self.cls_nav = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
+            self.cls_target = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
             # Input LayerNorm to normalize entity embeddings before attention
             self.input_norm = nn.LayerNorm(self.emb_dim)
         except Exception as e:
