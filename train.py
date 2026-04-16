@@ -376,14 +376,14 @@ config = (
             model_config={
                 "attention_emb_dim": 128,
                 "attn_ff_dim": 1024,
-                "head_fcnet_hiddens": tuple([256,256]),
-                "head_fcnet_activation": "tanh",
+                "head_fcnet_hiddens": tuple([128,128]),
+                "head_fcnet_activation": "relu",
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
                 "attn_layers": 2,
                 "dropout": 0.0,
                 
-                "head_fcnet_activation": "tanh",
+                "head_fcnet_activation": "relu",
                 "override_activation_fn": True,
             },
         )
