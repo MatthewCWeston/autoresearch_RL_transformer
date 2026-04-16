@@ -375,8 +375,8 @@ config = (
             catalog_class=AttentionPPOCatalog,
             model_config={
                 "attention_emb_dim": 128,
-                "attn_ff_dim": 1024,
-                "head_fcnet_hiddens": tuple([128,128]),
+                "attn_ff_dim": 2048,
+                "head_fcnet_hiddens": tuple([256,256]),
                 "head_fcnet_activation": "relu",
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
