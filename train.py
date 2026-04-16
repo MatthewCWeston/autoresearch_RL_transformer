@@ -87,7 +87,7 @@ class AttentionEncoder(TorchModel, Encoder):
             # Use an attention layer to reduce observations to a fixed length
             mhas = []
             for _ in range(self.attn_layers):
-                mhas.append(SimpleTransformerLayer(self.emb_dim, 4, h_dim=config.attn_ff_dim, dropout=config.dropout))
+                mhas.append(SimpleTransformerLayer(self.emb_dim, 2, h_dim=config.attn_ff_dim, dropout=config.dropout))
             self.mha = nn.ModuleList(mhas)
             # Can just run a bunch of these in sequence, they are self-contained.
             # Set up embedding layers for each element in our observation
@@ -112,7 +112,7 @@ class AttentionEncoder(TorchModel, Encoder):
                          if not (CRITIC_ONLY in n and not self.is_critic_encoder)]
             self.entity_type_map = {n: i for i, n in enumerate(obs_names)}
             self.type_embs = nn.Embedding(len(obs_names), self.emb_dim)
-            nn.init.normal_(self.type_embs.weight, std=0.1)
+            nn.init.normal_(self.type_embs.weight, std=0.02)
             # Two learned CLS tokens: nav (movement decisions) and target (aiming decisions)
             self.cls_nav = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
             self.cls_target = nn.Parameter(torch.randn(1, 1, self.emb_dim) * 0.02)
