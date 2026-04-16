@@ -377,13 +377,13 @@ config = (
                 "attention_emb_dim": 128,
                 "attn_ff_dim": 1024,
                 "head_fcnet_hiddens": tuple([256,256]),
-                "head_fcnet_activation": "gelu",
+                "head_fcnet_activation": "tanh",
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
                 "attn_layers": 2,
                 "dropout": 0.0,
                 
-                "head_fcnet_activation": "gelu",
+                "head_fcnet_activation": "tanh",
                 "override_activation_fn": True,
             },
         )
