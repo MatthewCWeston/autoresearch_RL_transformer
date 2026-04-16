@@ -99,6 +99,8 @@ class AttentionEncoder(TorchModel, Encoder):
                     s = s.child_space  # embed layer applies to child space
                 if type(s) is Box:
                     embs[n] = nn.Linear(s.shape[0], self.emb_dim)
+                    nn.init.normal_(embs[n].weight, std=0.02)
+                    nn.init.zeros_(embs[n].bias)
                 elif type(s) is Discrete:
                     embs[n] = nn.Embedding(s.n, self.emb_dim)
                     # By default, nn.Embedding has a much wider weight distribution than Linear.
@@ -379,7 +381,7 @@ config = (
                 "head_fcnet_hiddens": tuple([256,256]),
                 "head_fcnet_activation": "relu",
                 "vf_share_layers": False,
-                "head_fcnet_use_layernorm": False,
+                "head_fcnet_use_layernorm": True,
                 "attn_layers": 2,
                 "dropout": 0.0,
                 
