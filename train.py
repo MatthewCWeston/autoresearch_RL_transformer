@@ -63,10 +63,11 @@ class SimpleTransformerLayer(nn.Module): # A simple implementation of a transfor
             nn.Dropout(dropout),
         )
     def forward(self, x, src_key_padding_mask):
-        x_attn, _ = self.mha(x, x, x, key_padding_mask=src_key_padding_mask, need_weights=False)
-        x = self.norm_attn(x_attn + x)
-        x_ff = self.residual(x)
-        x = self.norm_ff(x_ff + x)
+        # Pre-norm: normalize inputs before each sublayer
+        x_normed = self.norm_attn(x)
+        x_attn, _ = self.mha(x_normed, x_normed, x_normed, key_padding_mask=src_key_padding_mask, need_weights=False)
+        x = x + x_attn
+        x = x + self.residual(self.norm_ff(x))
         return x
 
 class AttentionEncoder(TorchModel, Encoder):
@@ -87,7 +88,7 @@ class AttentionEncoder(TorchModel, Encoder):
             # Use an attention layer to reduce observations to a fixed length
             mhas = []
             for _ in range(self.attn_layers):
-                mhas.append(SimpleTransformerLayer(self.emb_dim, 2, h_dim=config.attn_ff_dim, dropout=config.dropout))
+                mhas.append(SimpleTransformerLayer(self.emb_dim, 4, h_dim=config.attn_ff_dim, dropout=config.dropout))
             self.mha = nn.ModuleList(mhas)
             # Can just run a bunch of these in sequence, they are self-contained.
             # Set up embedding layers for each element in our observation
