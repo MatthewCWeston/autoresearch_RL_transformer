@@ -366,6 +366,7 @@ config = (
         vf_clip_param=40,
         entropy_coeff=0.005,
         use_kl_loss=False,
+        grad_clip=0.5,  # exp51: gradient clipping for stability
         train_batch_size=args.batch_size,
         minibatch_size=args.minibatch_size,
         learner_class=BatchedCriticPPOLearner,
@@ -387,7 +388,7 @@ config = (
                 "dropout": 0.0,
                 
                 "head_fcnet_activation": "relu",
-                "override_activation_fn": False,  # exp50: first actual ReLU test (all prior 'relu' exps used LeakyReLU)
+                "override_activation_fn": True,
             },
         )
     )
