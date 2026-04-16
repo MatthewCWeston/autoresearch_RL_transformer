@@ -170,14 +170,8 @@ class AttentionEncoder(TorchModel, Encoder):
         for i in range(self.attn_layers):
             layer = self.mha[i]
             x = layer(x, src_key_padding_mask=(1-mask))
-        # Mean pool entity tokens (skip CLS at positions 0,1)
-        entity_x = x[:, 2:, :]
-        entity_mask = mask[:, 2:].unsqueeze(-1)  # [B, seq, 1]
-        entity_sum = (entity_x * entity_mask).sum(dim=1)
-        entity_count = entity_mask.sum(dim=1).clamp(min=1)
-        entity_pool = entity_sum / entity_count  # [B, emb_dim]
-        # Concatenate CLS nav, CLS target, and mean-pooled entity representation
-        return {ENCODER_OUT: torch.cat([x[:, 0, :], x[:, 1, :], entity_pool], dim=-1)}
+        # Concatenate both CLS outputs: nav context + targeting context
+        return {ENCODER_OUT: torch.cat([x[:, 0, :], x[:, 1, :]], dim=-1)}
 
 
 class AttentionEncoderConfig(ModelConfig):
@@ -187,7 +181,7 @@ class AttentionEncoderConfig(ModelConfig):
         self.attn_ff_dim = kwargs["model_config_dict"]["attn_ff_dim"]
         self.attn_layers = kwargs["model_config_dict"]["attn_layers"]
         self.dropout = kwargs["model_config_dict"].get("dropout", 0.1)
-        self.output_dims = (3 * self.emb_dim,)
+        self.output_dims = (2 * self.emb_dim,)
 
     def build(self, framework, is_critic=False):
         return AttentionEncoder(self, is_critic)
@@ -383,13 +377,13 @@ config = (
                 "attention_emb_dim": 128,
                 "attn_ff_dim": 1024,
                 "head_fcnet_hiddens": tuple([256,256]),
-                "head_fcnet_activation": "relu",
+                "head_fcnet_activation": "gelu",
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
                 "attn_layers": 2,
                 "dropout": 0.0,
                 
-                "head_fcnet_activation": "relu",
+                "head_fcnet_activation": "gelu",
                 "override_activation_fn": True,
             },
         )
