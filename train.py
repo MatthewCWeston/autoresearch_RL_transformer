@@ -63,11 +63,10 @@ class SimpleTransformerLayer(nn.Module): # A simple implementation of a transfor
             nn.Dropout(dropout),
         )
     def forward(self, x, src_key_padding_mask):
-        # Pre-norm: normalize inputs before each sublayer
-        x_normed = self.norm_attn(x)
-        x_attn, _ = self.mha(x_normed, x_normed, x_normed, key_padding_mask=src_key_padding_mask, need_weights=False)
-        x = x + x_attn
-        x = x + self.residual(self.norm_ff(x))
+        x_attn, _ = self.mha(x, x, x, key_padding_mask=src_key_padding_mask, need_weights=False)
+        x = self.norm_attn(x_attn + x)
+        x_ff = self.residual(x)
+        x = self.norm_ff(x_ff + x)
         return x
 
 class AttentionEncoder(TorchModel, Encoder):
@@ -363,7 +362,7 @@ config = (
     .training(
         lr=3e-4,
         gamma=0.999,
-        lambda_=0.98,
+        lambda_=0.99,
         vf_clip_param=40,
         entropy_coeff=0.005,
         use_kl_loss=False,
