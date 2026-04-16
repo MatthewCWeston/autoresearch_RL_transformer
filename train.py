@@ -38,7 +38,7 @@ import argparse
 parser  = argparse.ArgumentParser()
 parser.add_argument('--env-runners', type=int, default=60)
 parser.add_argument("--batch-size", type=int, default=131072)
-parser.add_argument("--minibatch-size", type=int, default=8192)
+parser.add_argument("--minibatch-size", type=int, default=4096)
 parser.add_argument("--critic-batch-size", type=int, default=32768) # Just for avoiding OOM issues
 args = parser.parse_args()
 
@@ -361,7 +361,6 @@ config = (
         gamma=0.999,
         lambda_=0.98,
         vf_clip_param=40,
-        clip_param=0.1,
         entropy_coeff=0.005,
         use_kl_loss=False,
         train_batch_size=args.batch_size,
