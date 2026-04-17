@@ -30,7 +30,7 @@ Each experiment runs on a single GPU. The training script runs for a **fixed tim
 
 **The goal is simple: get the highest eval_score.** Since the time budget is fixed, you don't need to worry about training time — it's always the number specified in `constraints.py`. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
 
-**General procedure (IMPORTANT)**: Runs take sufficiently long that minor adjustments to hyperparameters, in isolation, are generally not productive. The initial hyperparameters are a reasonable baseline — hyperparameter changes should generally be made due to architecture changes, and experiments should come from a thought-out plan to improve the system as a whole, after reading the relevant materials. Put simply, DO NOT run experiments that consist of one-line changes to hyperparameters without extraordinarily good reasons for doing so.
+**General procedure (IMPORTANT)**: Each run represents a significant time investment. Experiments should not consist of minor hyperparameter changes in isolation. Each experiment should constitute significant implementation and research effort. You can assume that the base training script's hyperparameters are already *reasonably good*, and there is no low-hanging fruit to snatch.
 
 **Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.01 eval_score improvement that adds 20 lines of hacky code? Probably not worth it. A 0.01 eval_score improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.
 
@@ -77,9 +77,9 @@ Example:
 ```
 commit	eval_score	memory_gb	status	description
 a1b2c3d	0.532300	1.10	keep	baseline
-b2c3d4e	0.566700	1.12	keep	increase LR to 3e-4
-c3d4e5f	0.551500	1.10    discard	switch to Tanh activation
-d4e5f6g	0.000000	0.0 crash	double model width (OOM)
+b2c3d4e	0.566700	1.12	keep	<very brief description of successful change>
+c3d4e5f	0.551500	1.10    discard	<very brief description of unsuccessful change>
+d4e5f6g	0.000000	0.0 crash	<very brief description of change and reason for crash if known (e.g OOM)>
 ```
 
 ## The experiment loop
