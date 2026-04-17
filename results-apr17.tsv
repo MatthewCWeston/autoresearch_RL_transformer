@@ -1,0 +1,14 @@
+commit	eval_score	memory_gb	status	description
+7bdfd86	0.340000	2.7	keep	baseline
+7efb48a	0.330000	3.0	discard	CLS token pooling replacing mean-pool
+7494c16	0.540000	2.8	keep	GTrXL gated pre-norm transformer
+b6fa1ff	0.260000	4.8	discard	2-layer GTrXL + bool mask + final LN
+4ae93d1	0.500000	2.8	discard	attention-weighted pooling with learnable query
+4d63db8	0.220000	3.7	discard	SwiGLU FF sublayer
+c0b76ba	0.330000	2.9	discard	per-field MLP+LN embedder
+e658730	0.180000	2.8	discard	multi-readout encoder
+33b4010	0.310000	2.8	discard	mean+max pool with projection
+fa4e7e3	0.460000	2.6	discard	remove dropout from transformer
+42163f4	0.410000	4.7	discard	universal-transformer 2-pass shared weights
+144ab35	0.300000	2.8	discard	gate attention only plain FF residual
+33b4010	0.460000	1.6	discard	mean+max pooling with projection
