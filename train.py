@@ -48,7 +48,7 @@ args = parser.parse_args()
 
 CRITIC_ONLY = "CRITIC_ONLY" # Environment dynamics that the actor encoder should discard. Not used in our experiment.
 
-class SimpleTransformerLayer(nn.Module): # A simple implementation of a transformer layer
+class SimpleTransformerLayer(nn.Module): # GTrXL-style gated pre-norm transformer layer (Parisotto et al. 2020)
     def __init__(self, emb_dim, heads, h_dim=2048, dropout=0.1):
         super().__init__()
         self.dropout = dropout
@@ -57,16 +57,29 @@ class SimpleTransformerLayer(nn.Module): # A simple implementation of a transfor
         self.norm_ff = torch.nn.LayerNorm(emb_dim)
         self.residual = nn.Sequential(
             nn.Linear(emb_dim, h_dim),
-            nn.GELU(), # Apparently just plain better than ReLU here.
+            nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(h_dim, emb_dim),
             nn.Dropout(dropout),
         )
+        # Highway-style gates on each sublayer. Bias initialized to -2 so gates
+        # start near-closed (sigmoid(-2)~0.12) and the layer behaves close to
+        # identity at init, per the GTrXL paper's stability recommendations.
+        self.gate_attn = nn.Linear(2 * emb_dim, emb_dim)
+        self.gate_ff = nn.Linear(2 * emb_dim, emb_dim)
+        nn.init.xavier_uniform_(self.gate_attn.weight)
+        nn.init.xavier_uniform_(self.gate_ff.weight)
+        nn.init.constant_(self.gate_attn.bias, -2.0)
+        nn.init.constant_(self.gate_ff.bias, -2.0)
     def forward(self, x, src_key_padding_mask):
-        x_attn, _ = self.mha(x, x, x, key_padding_mask=src_key_padding_mask, need_weights=False)
-        x = self.norm_attn(x_attn + x)
-        x_ff = self.residual(x)
-        x = self.norm_ff(x_ff + x)
+        y = self.norm_attn(x)
+        y, _ = self.mha(y, y, y, key_padding_mask=src_key_padding_mask, need_weights=False)
+        g = torch.sigmoid(self.gate_attn(torch.cat([x, y], dim=-1)))
+        x = g * y + (1 - g) * x
+        y = self.norm_ff(x)
+        y = self.residual(y)
+        g = torch.sigmoid(self.gate_ff(torch.cat([x, y], dim=-1)))
+        x = g * y + (1 - g) * x
         return x
 
 class AttentionEncoder(TorchModel, Encoder):
