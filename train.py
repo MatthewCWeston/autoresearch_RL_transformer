@@ -85,11 +85,21 @@ class AttentionEncoder(TorchModel, Encoder):
             self.observation_space = config.observation_space
             self.emb_dim = config.emb_dim
             self.attn_layers = config.attn_layers
-            # Use an attention layer to reduce observations to a fixed length
-            mhas = []
-            for _ in range(self.attn_layers):
-                mhas.append(SimpleTransformerLayer(self.emb_dim, 4, h_dim=config.attn_ff_dim, dropout=config.dropout))
-            self.mha = nn.ModuleList(mhas)
+            self.use_deepset = getattr(config, 'use_deepset', False)
+            if self.use_deepset:
+                self.entity_mlp = nn.Sequential(
+                    nn.Linear(self.emb_dim, config.attn_ff_dim),
+                    nn.GELU(),
+                    nn.Dropout(config.dropout),
+                    nn.Linear(config.attn_ff_dim, self.emb_dim),
+                    nn.Dropout(config.dropout),
+                )
+                self.entity_norm = nn.LayerNorm(self.emb_dim)
+            else:
+                mhas = []
+                for _ in range(self.attn_layers):
+                    mhas.append(SimpleTransformerLayer(self.emb_dim, 4, h_dim=config.attn_ff_dim, dropout=config.dropout))
+                self.mha = nn.ModuleList(mhas)
             # Can just run a bunch of these in sequence, they are self-contained.
             # Set up embedding layers for each element in our observation
             embs = {}
@@ -147,16 +157,18 @@ class AttentionEncoder(TorchModel, Encoder):
             embedded = self.embs[s](v)
             embeddings.append(embedded)
             masks.append(mask)
-        # All entities have embeddings. Apply masked residual self-attention and then mean-pool.
         x = torch.concatenate(embeddings, dim=1)  # batch_size, seq_len, unit_size
         mask = torch.concatenate(masks, dim=1)  # batch_size, seq_len
-        for i in range(self.attn_layers):
-            layer = self.mha[i]
-            x = layer(x, src_key_padding_mask=(1-mask))
+        if self.use_deepset:
+            x = self.entity_norm(x + self.entity_mlp(x))
+        else:
+            for i in range(self.attn_layers):
+                layer = self.mha[i]
+                x = layer(x, src_key_padding_mask=(1-mask))
         # Masked mean-pooling.
         mask = mask.unsqueeze(dim=2)
-        x = x * mask  # Mask x to exclude nonexistent entries from mean pool op
-        x = x.mean(dim=1) * mask.shape[1] / mask.sum(dim=1)  # Adjust mean
+        x = x * mask
+        x = x.mean(dim=1) * mask.shape[1] / mask.sum(dim=1)
         return {ENCODER_OUT: x}
 
 
@@ -167,6 +179,7 @@ class AttentionEncoderConfig(ModelConfig):
         self.attn_ff_dim = kwargs["model_config_dict"]["attn_ff_dim"]
         self.attn_layers = kwargs["model_config_dict"]["attn_layers"]
         self.dropout = kwargs["model_config_dict"].get("dropout", 0.1)
+        self.use_deepset = kwargs["model_config_dict"].get("use_deepset", False)
         self.output_dims = (self.emb_dim,)
 
     def build(self, framework, is_critic=False):
@@ -367,6 +380,7 @@ config = (
                 "vf_share_layers": False,
                 "head_fcnet_use_layernorm": True,
                 "attn_layers": 1,
+                "use_deepset": True,
                 "dropout": 0.1,
                 
                 "head_fcnet_activation": "relu",
