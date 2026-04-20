@@ -28,11 +28,11 @@ Each experiment runs on a single GPU. The training script runs for a **fixed tim
 - Install new packages or add dependencies. You can only use what's already in `requirements.txt`.
 - Modify the test environment. The agent's performance on `SW_1v1_env_singleplayer` is the ground truth metric.
 
-**The goal is simple: get the highest eval_score.** Since the time budget is fixed, you don't need to worry about training time — it's always the number specified in `constraints.py`. Everything is fair game: change the architecture, the optimizer, the hyperparameters, the batch size, the model size. The only constraint is that the code runs without crashing and finishes within the time budget.
+**The goal is simple: get the highest AULC_score.** Since the time budget is fixed, you don't need to worry about training time — it's always the number specified in `constraints.py`. Everything is fair game: anything in train.py can be modified in pursuit of better performance. The only constraint is that the code runs without crashing and finishes within the time budget.
 
 **General procedure (IMPORTANT)**: Each run represents a significant time investment. Experiments should not consist of minor hyperparameter changes in isolation. Each experiment should constitute significant implementation and research effort. You can assume that the base training script's hyperparameters are already *reasonably good*, and there is no low-hanging fruit to snatch.
 
-**Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.01 eval_score improvement that adds 20 lines of hacky code? Probably not worth it. A 0.01 eval_score improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.
+**Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.01 AULC_score improvement that adds 20 lines of hacky code? Probably not worth it. A 0.01 AULC_score improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.
 
 **The first run**: Your very first run should always be to establish the baseline, so you will run the training script as is.
 
@@ -42,7 +42,7 @@ Once the script finishes it prints a summary like this:
 
 ```
 ---
-eval_score:       0.670000
+AULC_score:       0.120000
 training_seconds: 668.9
 total_seconds:    705.4
 peak_vram_mb:     1100.5
@@ -53,7 +53,7 @@ num_params_M:     0.4
 Note that the script is configured to always stop after a fixed wall clock time, so depending on the computing platform of this computer the numbers might look different. You can extract the key metric from the log file:
 
 ```
-grep "^eval_score:" run.log
+grep "^AULC_score:" run.log
 ```
 
 ## Logging results
@@ -63,11 +63,11 @@ When an experiment is done, log it to `results.tsv` (tab-separated, NOT comma-se
 The TSV has a header row and 5 columns:
 
 ```
-commit	eval_score	memory_gb	status	description
+commit	AULC_score	memory_gb	status	description
 ```
 
 1. git commit hash (short, 7 chars)
-2. eval_score achieved (e.g. 0.7) — use 0.000000 for crashes
+2. AULC_score achieved (e.g. 0.1) — use 0.000000 for crashes
 3. peak memory in GB, round to .1f (e.g. 12.3 — divide peak_vram_mb by 1024) — use 0.0 for crashes
 4. status: `keep`, `discard`, or `crash`
 5. short text description of what this experiment tried
@@ -75,10 +75,10 @@ commit	eval_score	memory_gb	status	description
 Example:
 
 ```
-commit	eval_score	memory_gb	status	description
-a1b2c3d	0.532300	1.10	keep	baseline
-b2c3d4e	0.566700	1.12	keep	<very brief description of successful change>
-c3d4e5f	0.551500	1.10    discard	<very brief description of unsuccessful change>
+commit	AULC_score	memory_gb	status	description
+a1b2c3d	0.121000	1.10	keep	baseline
+b2c3d4e	0.235000	1.12	keep	<very brief description of successful change>
+c3d4e5f	0.190000	1.10    discard	<very brief description of unsuccessful change>
 d4e5f6g	0.000000	0.0 crash	<very brief description of change and reason for crash if known (e.g OOM)>
 ```
 
@@ -92,11 +92,11 @@ LOOP FOREVER:
 2. Tune `train.py` with an experimental idea by directly hacking the code.
 3. git commit
 4. Run the experiment: `python train.py > run.log 2>&1` (redirect everything — do NOT use tee or let output flood your context)
-5. Read out the results: `grep "^eval_score:\|^peak_vram_mb:" run.log`
+5. Read out the results: `grep "^AULC_score:\|^peak_vram_mb:" run.log`
 6. If the grep output is empty, the run crashed. Run `tail -n 50 run.log` to read the Python stack trace and attempt a fix. If you can't get things to work after more than a few attempts, give up.
 7. Record the results in the tsv (NOTE: do not commit the results.tsv file, leave it untracked by git)
-8. If eval_score improved (higher), you "advance" the branch, keeping the git commit
-9. If eval_score is equal or worse, you git reset back to where you started
+8. If AULC_score improved (higher), you "advance" the branch, keeping the git commit
+9. If AULC_score is equal or worse, you git reset back to where you started
 
 The idea is that you are a completely autonomous researcher trying things out. If they work, keep. If they don't, discard. And you're advancing the branch so that you can iterate. If you feel like you're getting stuck in some way, you can rewind but you should probably do this very very sparingly (if ever).
 

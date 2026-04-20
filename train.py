@@ -7,6 +7,7 @@ import time
 from tqdm import tqdm
 import gymnasium as gym
 from gymnasium.spaces import Discrete, Box
+import numpy as np
 
 import torch
 from torch import nn
@@ -373,12 +374,6 @@ config = (
             },
         )
     )
-    .evaluation(
-		evaluation_num_env_runners=4,
-		evaluation_interval=0, # No evaluations while training
-		evaluation_duration=500,
-        evaluation_duration_unit="episodes",
-	)
     .debugging(seed=42)
 )
 
@@ -387,26 +382,22 @@ algo = config.build_algo()
 t_start_training = time.time()
 
 step = 0
+scores = []
 while (True):
     step += 1
     results = algo.train()
-    print(f"TRAIN: {results[ENV_RUNNER_RESULTS][EPISODE_RETURN_MEAN]:.2f} time={time.time()-t_start_training:.1f}")
+    train_score = results[ENV_RUNNER_RESULTS][EPISODE_RETURN_MEAN]
+    print(f"TRAIN: {train_score:.2f} time={time.time()-t_start_training:.1f}")
+    scores.append(train_score)
     if time.time() - t_start_training >= TIME_BUDGET:
         print(f"Time budget reached at {step} iters.")
         break
         
-t_end_training = time.time()
-total_training_time = t_end_training - t_start_training
-results = algo.evaluate()
-eval_score = results[ENV_RUNNER_RESULTS][EPISODE_RETURN_MEAN]
-print(f"EVALUATION: {eval_score:.2f} time={time.time()-t_end_training:.1f}")
-
-# Final summary
 t_end = time.time()
-startup_time = t_start_training - t_start
+total_training_time = t_end - t_start_training
 
 print("---")
-print(f"eval_score:       {eval_score:.6f}")
+print(f"AULC_score:       {np.mean(scores):.6f}")
 print(f"training_seconds: {total_training_time:.1f}")
 print(f"total_seconds:    {t_end - t_start:.1f}")
 print(f"peak_vram_mb:     {torch.cuda.max_memory_allocated() / 1024 / 1024:.1f}")
