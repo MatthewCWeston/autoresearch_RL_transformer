@@ -86,6 +86,7 @@ class AttentionEncoder(TorchModel, Encoder):
             self.emb_dim = config.emb_dim
             self.attn_layers = config.attn_layers
             self.use_deepset = getattr(config, 'use_deepset', False)
+            self.use_max_pool = getattr(config, 'use_max_pool', False)
             if self.use_deepset:
                 self.entity_mlp = nn.Sequential(
                     nn.Linear(self.emb_dim, config.attn_ff_dim),
@@ -165,10 +166,15 @@ class AttentionEncoder(TorchModel, Encoder):
             for i in range(self.attn_layers):
                 layer = self.mha[i]
                 x = layer(x, src_key_padding_mask=(1-mask))
-        # Masked mean-pooling.
         mask = mask.unsqueeze(dim=2)
-        x = x * mask
-        x = x.mean(dim=1) * mask.shape[1] / mask.sum(dim=1)
+        x_masked = x * mask
+        x_mean = x_masked.sum(dim=1) / mask.sum(dim=1).clamp(min=1)
+        if self.use_max_pool:
+            x_for_max = x * mask + (~mask.bool()) * (-1e9)
+            x_max = x_for_max.max(dim=1).values
+            x = torch.cat([x_mean, x_max], dim=-1)
+        else:
+            x = x_mean
         return {ENCODER_OUT: x}
 
 
@@ -180,7 +186,9 @@ class AttentionEncoderConfig(ModelConfig):
         self.attn_layers = kwargs["model_config_dict"]["attn_layers"]
         self.dropout = kwargs["model_config_dict"].get("dropout", 0.1)
         self.use_deepset = kwargs["model_config_dict"].get("use_deepset", False)
-        self.output_dims = (self.emb_dim,)
+        self.use_max_pool = kwargs["model_config_dict"].get("use_max_pool", False)
+        pool_mult = 2 if self.use_max_pool else 1
+        self.output_dims = (self.emb_dim * pool_mult,)
 
     def build(self, framework, is_critic=False):
         return AttentionEncoder(self, is_critic)
@@ -381,6 +389,7 @@ config = (
                 "head_fcnet_use_layernorm": True,
                 "attn_layers": 1,
                 "use_deepset": True,
+                "use_max_pool": True,
                 "dropout": 0.1,
                 
                 "head_fcnet_activation": "relu",
