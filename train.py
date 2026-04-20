@@ -377,7 +377,7 @@ config = (
                 "attn_ff_dim": 1024,
                 "head_fcnet_hiddens": tuple([256,256]),
                 "head_fcnet_activation": "relu",
-                "vf_share_layers": False,
+                "vf_share_layers": True,
                 "head_fcnet_use_layernorm": True,
                 "attn_layers": 1,
                 "use_deepset": True,
